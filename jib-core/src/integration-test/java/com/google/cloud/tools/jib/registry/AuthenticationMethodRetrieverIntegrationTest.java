@@ -27,13 +27,13 @@ public class AuthenticationMethodRetrieverIntegrationTest {
   public void testGetRegistryAuthenticator()
       throws RegistryAuthenticationFailedException, IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory("registry.hub.docker.com", "library/busybox")
+        RegistryClient.factory("registry.hub.docker.com", "library/busybox", null)
             .newWithAuthorization(null);
     RegistryAuthenticator registryAuthenticator = registryClient.getRegistryAuthenticator();
     Authorization authorization = registryAuthenticator.authenticatePull();
 
     RegistryClient authorizedRegistryClient =
-        RegistryClient.factory("registry.hub.docker.com", "library/busybox")
+        RegistryClient.factory("registry.hub.docker.com", "library/busybox", null)
             .newWithAuthorization(authorization);
     authorizedRegistryClient.pullManifest("latest");
   }

@@ -42,7 +42,7 @@ public class BlobPullerIntegrationTest {
   public void testPull() throws IOException, RegistryException {
     // Pulls the busybox image.
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "busybox").newAllowHttp();
+        RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
     V21ManifestTemplate manifestTemplate =
         registryClient.pullManifest("latest", V21ManifestTemplate.class);
 
@@ -64,7 +64,7 @@ public class BlobPullerIntegrationTest {
 
     try {
       RegistryClient registryClient =
-          RegistryClient.factory("localhost:5000", "busybox").newAllowHttp();
+          RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
       registryClient.pullBlob(nonexistentDigest, Mockito.mock(OutputStream.class));
       Assert.fail("Trying to pull nonexistent blob should have errored");
 

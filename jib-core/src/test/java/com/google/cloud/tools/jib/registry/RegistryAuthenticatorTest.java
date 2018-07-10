@@ -30,7 +30,8 @@ public class RegistryAuthenticatorTest {
     RegistryAuthenticator registryAuthenticator =
         RegistryAuthenticator.fromAuthenticationMethod(
             "Bearer realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
-            "someimage");
+            "someimage",
+            null);
     Assert.assertEquals(
         new URL("https://somerealm?service=someservice&scope=repository:someimage:scope"),
         registryAuthenticator.getAuthenticationUrl("scope"));
@@ -41,14 +42,17 @@ public class RegistryAuthenticatorTest {
     Assert.assertNull(
         RegistryAuthenticator.fromAuthenticationMethod(
             "Basic realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
-            "someimage"));
+            "someimage",
+            null));
   }
 
   @Test
   public void testFromAuthenticationMethod_noBearer() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          "realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"", "someimage");
+          "realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
+          "someimage",
+          null);
       Assert.fail("Authentication method without 'Bearer ' or 'Basic ' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {
@@ -61,7 +65,8 @@ public class RegistryAuthenticatorTest {
   @Test
   public void testFromAuthenticationMethod_noRealm() {
     try {
-      RegistryAuthenticator.fromAuthenticationMethod("Bearer scope=\"somescope\"", "someimage");
+      RegistryAuthenticator.fromAuthenticationMethod(
+          "Bearer scope=\"somescope\"", "someimage", null);
       Assert.fail("Authentication method without 'realm' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {
@@ -75,7 +80,7 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_noService() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          "Bearer realm=\"https://somerealm\"", "someimage");
+          "Bearer realm=\"https://somerealm\"", "someimage", null);
       Assert.fail("Authentication method without 'service' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {

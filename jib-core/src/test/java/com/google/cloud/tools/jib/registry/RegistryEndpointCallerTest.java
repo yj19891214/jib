@@ -24,6 +24,7 @@ import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.http.Authorizations;
 import com.google.cloud.tools.jib.http.BlobHttpContent;
 import com.google.cloud.tools.jib.http.Connection;
+import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.http.Response;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.registry.json.ErrorEntryTemplate;
@@ -33,7 +34,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import org.apache.http.NoHttpResponseException;
@@ -90,7 +91,7 @@ public class RegistryEndpointCallerTest {
 
   @Mock private Connection mockConnection;
   @Mock private Response mockResponse;
-  @Mock private Function<URL, Connection> mockConnectionFactory;
+  @Mock private BiFunction<URL, ProxySettings, Connection> mockConnectionFactory;
   @Mock private HttpResponse mockHttpResponse;
 
   private RegistryEndpointCaller<String> testRegistryEndpointCallerSecure;
@@ -105,9 +106,10 @@ public class RegistryEndpointCallerTest {
             Authorizations.withBasicToken("token"),
             new RegistryEndpointRequestProperties("serverUrl", "imageName"),
             false,
+            null,
             mockConnectionFactory);
 
-    Mockito.when(mockConnectionFactory.apply(Mockito.any())).thenReturn(mockConnection);
+    Mockito.when(mockConnectionFactory.apply(Mockito.any(), Mockito.any())).thenReturn(mockConnection);
     Mockito.when(mockHttpResponse.parseAsString()).thenReturn("");
     Mockito.when(mockHttpResponse.getHeaders()).thenReturn(new HttpHeaders());
   }
@@ -235,12 +237,13 @@ public class RegistryEndpointCallerTest {
             Authorizations.withBasicToken("token"),
             new RegistryEndpointRequestProperties("serverUrl", "imageName"),
             true,
+            null,
             mockConnectionFactory);
     Assert.assertEquals("body", testRegistryEndpointCallerInsecure.call());
 
     // Checks that the URL protocol was first HTTPS, then HTTP.
     ArgumentCaptor<URL> urlArgumentCaptor = ArgumentCaptor.forClass(URL.class);
-    Mockito.verify(mockConnectionFactory, Mockito.times(2)).apply(urlArgumentCaptor.capture());
+    Mockito.verify(mockConnectionFactory, Mockito.times(2)).apply(urlArgumentCaptor.capture(), Mockito.any(ProxySettings.class));
     Assert.assertEquals("https", urlArgumentCaptor.getAllValues().get(0).getProtocol());
     Assert.assertEquals("http", urlArgumentCaptor.getAllValues().get(1).getProtocol());
   }
@@ -319,7 +322,8 @@ public class RegistryEndpointCallerTest {
 
     // Checks that the URL was changed to the new location.
     ArgumentCaptor<URL> urlArgumentCaptor = ArgumentCaptor.forClass(URL.class);
-    Mockito.verify(mockConnectionFactory, Mockito.times(2)).apply(urlArgumentCaptor.capture());
+    Mockito.verify(mockConnectionFactory, Mockito.times(2)).apply(
+        urlArgumentCaptor.capture(), Mockito.any(ProxySettings.class));
     Assert.assertEquals(
         new URL("https://apiRouteBase/api"), urlArgumentCaptor.getAllValues().get(0));
     Assert.assertEquals(new URL("https://newlocation"), urlArgumentCaptor.getAllValues().get(1));

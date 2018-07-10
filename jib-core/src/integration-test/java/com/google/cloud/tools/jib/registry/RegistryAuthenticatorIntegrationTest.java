@@ -26,7 +26,7 @@ public class RegistryAuthenticatorIntegrationTest {
   @Test
   public void testAuthenticate() throws RegistryAuthenticationFailedException {
     RegistryAuthenticator registryAuthenticator =
-        RegistryAuthenticators.forDockerHub("library/busybox");
+        RegistryAuthenticators.forDockerHub("library/busybox", null);
     Authorization authorization = registryAuthenticator.authenticatePull();
 
     // Checks that some token was received.

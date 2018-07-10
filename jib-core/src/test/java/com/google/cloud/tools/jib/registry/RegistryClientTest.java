@@ -36,7 +36,7 @@ public class RegistryClientTest {
 
   @Before
   public void setUp() {
-    testRegistryClientFactory = RegistryClient.factory("some.server.url", "some image name");
+    testRegistryClientFactory = RegistryClient.factory("some.server.url", "some image name", null);
   }
 
   @Test
