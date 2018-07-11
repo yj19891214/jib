@@ -34,7 +34,7 @@ public class ManifestPullerIntegrationTest {
   @Test
   public void testPull_v21() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
+        RegistryClient.factory(url -> new Connection(url, null), "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     V21ManifestTemplate manifestTemplate =
         registryClient.pullManifest("latest", V21ManifestTemplate.class);
 
@@ -45,7 +45,7 @@ public class ManifestPullerIntegrationTest {
   @Test
   public void testPull_v22() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory(Connection::new, "gcr.io", "distroless/java").newRegistryClient();
+        RegistryClient.factory(url -> new Connection(url, null), "gcr.io", "distroless/java").newRegistryClient();
     ManifestTemplate manifestTemplate = registryClient.pullManifest("latest");
 
     Assert.assertEquals(2, manifestTemplate.getSchemaVersion());
@@ -57,7 +57,7 @@ public class ManifestPullerIntegrationTest {
   public void testPull_unknownManifest() throws RegistryException, IOException {
     try {
       RegistryClient registryClient =
-          RegistryClient.factory(Connection::new, "localhost:5000", "busybox")
+          RegistryClient.factory(url -> new Connection(url, null), "localhost:5000", "busybox")
               .setAllowHttp(true)
               .newRegistryClient();
       registryClient.pullManifest("nonexistent-tag");

@@ -314,7 +314,7 @@ public class BuildConfiguration {
       @Nullable CacheConfiguration applicationLayersCacheConfiguration,
       @Nullable CacheConfiguration baseImageLayersCacheConfiguration,
       boolean allowHttp,
-      ProxySettings proxySettings,
+      @Nullable ProxySettings proxySettings,
       @Nullable LayerConfiguration extraFilesLayerConfiguration) {
     this.buildLogger = buildLogger;
     this.baseImageReference = baseImageReference;
@@ -445,6 +445,7 @@ public class BuildConfiguration {
     return allowHttp;
   }
 
+  @Nullable
   public ProxySettings getProxySettings() {
     return proxySettings;
   }

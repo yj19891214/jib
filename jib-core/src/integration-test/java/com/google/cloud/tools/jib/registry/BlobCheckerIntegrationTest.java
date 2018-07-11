@@ -33,7 +33,7 @@ public class BlobCheckerIntegrationTest {
   @Test
   public void testCheck_exists() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
+        RegistryClient.factory(url -> new Connection(url, null), "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     V22ManifestTemplate manifestTemplate =
         registryClient.pullManifest("latest", V22ManifestTemplate.class);
     DescriptorDigest blobDigest = manifestTemplate.getLayers().get(0).getDigest();
@@ -44,7 +44,7 @@ public class BlobCheckerIntegrationTest {
   @Test
   public void testCheck_doesNotExist() throws IOException, RegistryException, DigestException {
     RegistryClient registryClient =
-        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
+        RegistryClient.factory(url -> new Connection(url, null), "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     DescriptorDigest fakeBlobDigest =
         DescriptorDigest.fromHash(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

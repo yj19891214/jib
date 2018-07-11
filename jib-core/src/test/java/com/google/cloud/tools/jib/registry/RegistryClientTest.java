@@ -38,7 +38,7 @@ public class RegistryClientTest {
   @Before
   public void setUp() {
     testRegistryClientFactory =
-        RegistryClient.factory(Connection::new, "some.server.url", "some image name");
+        RegistryClient.factory(url -> new Connection(url, null), "some.server.url", "some image name");
   }
 
   @Test

@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
 import javax.annotation.Nullable;
+import org.apache.http.HttpHost;
 import org.apache.http.NoHttpResponseException;
 
 /**
@@ -51,7 +52,7 @@ public class Connection implements Closeable {
    * @see <a
    *     href="https://github.com/google/google-http-java-client/issues/39">https://github.com/google/google-http-java-client/issues/39</a>
    */
-  private final HttpRequestFactory requestFactory;
+  private HttpRequestFactory requestFactory;
 
   @Nullable private HttpResponse httpResponse;
 
@@ -63,17 +64,14 @@ public class Connection implements Closeable {
    *
    * @param url the url to send the request to
    */
-  public Connection(URL url) {
-    this(url, null);
-  }
-
   public Connection(URL url, @Nullable ProxySettings proxySettings) {
     this.url = new GenericUrl(url);
 
     HttpTransport transport;
     if (proxySettings != null) {
       // TODO(chanseok): check nonProxyHosts to exclude hosts from proxy
-      transport = new ApacheHttpTransport.Builder().setProxy(proxySettings.apply(url)).build();
+      HttpHost proxyHost = new HttpHost(proxySettings.getHost(), proxySettings.getPort());
+      transport = new ApacheHttpTransport.Builder().setProxy(proxyHost).build();
     } else {
       transport = new ApacheHttpTransport();
     }

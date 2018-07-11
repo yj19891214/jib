@@ -35,7 +35,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.settings.Proxy;
-import org.eclipse.aether.util.repository.AuthenticationBuilder;
 
 /** Builds a container image and exports to the default Docker daemon. */
 @Mojo(
@@ -53,6 +52,8 @@ public class BuildDockerMojo extends JibPluginConfiguration {
 
   @Override
   public void execute() throws MojoExecutionException {
+    Preconditions.checkNotNull(session);
+
     MavenBuildLogger mavenBuildLogger = new MavenBuildLogger(getLog());
     handleDeprecatedParameters(mavenBuildLogger);
 
@@ -66,18 +67,13 @@ public class BuildDockerMojo extends JibPluginConfiguration {
 
     // Checks Maven settings for registry credentials.
     MavenSettingsServerCredentials mavenSettingsServerCredentials =
-        new MavenSettingsServerCredentials(Preconditions.checkNotNull(session).getSettings());
+        new MavenSettingsServerCredentials(session.getSettings());
     RegistryCredentials knownBaseRegistryCredentials =
         mavenSettingsServerCredentials.retrieve(baseImage.getRegistry());
 
     MavenProjectProperties mavenProjectProperties =
         MavenProjectProperties.getForProject(getProject(), mavenBuildLogger);
     String mainClass = mavenProjectProperties.getMainClass(this);
-
-    Proxy proxy = session.getSettings().getActiveProxy();
-    AuthenticationBuilder proxyAuthBuilder = new AuthenticationBuilder();
-    proxyAuthBuilder.addUsername(proxy.getUsername());
-    proxyAuthBuilder.addPassword(proxy.getPassword());
 
     // Builds the BuildConfiguration.
     // TODO: Consolidate with BuildImageMojo.
@@ -92,8 +88,7 @@ public class BuildDockerMojo extends JibPluginConfiguration {
             .setJvmFlags(getJvmFlags())
             .setEnvironment(getEnvironment())
             .setExposedPorts(ExposedPortsParser.parse(getExposedPorts()))
-            .setAllowHttp(getAllowInsecureRegistries())
-            .setProxySettings(new ProxySettings(proxy.getHost(), proxy.getPort()));
+            .setAllowHttp(getAllowInsecureRegistries());
     CacheConfiguration applicationLayersCacheConfiguration =
         CacheConfiguration.forPath(mavenProjectProperties.getCacheDirectory());
     buildConfigurationBuilder.setApplicationLayersCacheConfiguration(
@@ -102,6 +97,12 @@ public class BuildDockerMojo extends JibPluginConfiguration {
       buildConfigurationBuilder.setBaseImageLayersCacheConfiguration(
           applicationLayersCacheConfiguration);
     }
+    Proxy proxy = session.getSettings().getActiveProxy();
+    if (proxy != null) {
+      buildConfigurationBuilder.setProxySettings(
+          new ProxySettings(proxy.getHost(), proxy.getPort()));
+    }
+
     BuildConfiguration buildConfiguration = buildConfigurationBuilder.build();
 
     // TODO: Instead of disabling logging, have authentication credentials be provided

@@ -1,10 +1,6 @@
 package com.google.cloud.tools.jib.http;
 
-import java.net.URL;
-import java.util.function.Function;
-import org.apache.http.HttpHost;
-
-public class ProxySettings implements Function<URL, HttpHost> {
+public class ProxySettings {
 
   private final String host;
   private final int port;
@@ -14,8 +10,11 @@ public class ProxySettings implements Function<URL, HttpHost> {
     this.port = port;
   }
 
-  @Override
-  public HttpHost apply(URL url) {
-    return new HttpHost(host, port);
+  public String getHost() {
+    return host;
+  }
+
+  public int getPort() {
+    return port;
   }
 }

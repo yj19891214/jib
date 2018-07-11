@@ -30,7 +30,7 @@ public class RegistryAuthenticatorTest {
       throws MalformedURLException, RegistryAuthenticationFailedException {
     RegistryAuthenticator registryAuthenticator =
         RegistryAuthenticator.fromAuthenticationMethod(
-            Connection::new,
+            url -> new Connection(url, null),
             "Bearer realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
             "someimage");
     Assert.assertEquals(
@@ -42,19 +42,19 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_basic() throws RegistryAuthenticationFailedException {
     Assert.assertNull(
         RegistryAuthenticator.fromAuthenticationMethod(
-            Connection::new,
+            url -> new Connection(url, null),
             "Basic realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
             "someimage"));
 
     Assert.assertNull(
         RegistryAuthenticator.fromAuthenticationMethod(
-            Connection::new,
+            url -> new Connection(url, null),
             "BASIC realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
             "someimage"));
 
     Assert.assertNull(
         RegistryAuthenticator.fromAuthenticationMethod(
-            Connection::new,
+            url -> new Connection(url, null),
             "bASIC realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
             "someimage"));
   }
@@ -63,7 +63,7 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_noBearer() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          Connection::new,
+          url -> new Connection(url, null),
           "realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
           "someimage");
       Assert.fail("Authentication method without 'Bearer ' or 'Basic ' should fail");
@@ -79,7 +79,7 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_noRealm() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          Connection::new, "Bearer scope=\"somescope\"", "someimage");
+          url -> new Connection(url, null), "Bearer scope=\"somescope\"", "someimage");
       Assert.fail("Authentication method without 'realm' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {
@@ -93,7 +93,7 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_noService() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          Connection::new, "Bearer realm=\"https://somerealm\"", "someimage");
+          url -> new Connection(url, null), "Bearer realm=\"https://somerealm\"", "someimage");
       Assert.fail("Authentication method without 'service' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {

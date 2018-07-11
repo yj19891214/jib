@@ -53,7 +53,7 @@ public class ConnectionTest {
   private final GenericUrl fakeUrl = new GenericUrl("http://crepecake/fake/url");
   private Request fakeRequest;
 
-  @InjectMocks private final Connection testConnection = new Connection(fakeUrl.toURL());
+  @InjectMocks private final Connection testConnection = new Connection(fakeUrl.toURL(), null);
 
   @Before
   public void setUpMocksAndFakes() throws IOException {

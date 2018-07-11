@@ -23,6 +23,7 @@ import com.google.cloud.tools.jib.frontend.BuildStepsExecutionException;
 import com.google.cloud.tools.jib.frontend.BuildStepsRunner;
 import com.google.cloud.tools.jib.frontend.ExposedPortsParser;
 import com.google.cloud.tools.jib.frontend.HelpfulSuggestions;
+import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.image.ImageFormat;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.registry.RegistryClient;
@@ -35,6 +36,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.settings.Proxy;
 
 /** Builds a container image. */
 @Mojo(
@@ -52,6 +54,7 @@ public class BuildImageMojo extends JibPluginConfiguration {
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
+    Preconditions.checkNotNull(session);
     MavenBuildLogger mavenBuildLogger = new MavenBuildLogger(getLog());
     handleDeprecatedParameters(mavenBuildLogger);
 
@@ -81,7 +84,7 @@ public class BuildImageMojo extends JibPluginConfiguration {
 
     // Checks Maven settings for registry credentials.
     MavenSettingsServerCredentials mavenSettingsServerCredentials =
-        new MavenSettingsServerCredentials(Preconditions.checkNotNull(session).getSettings());
+        new MavenSettingsServerCredentials(session.getSettings());
     RegistryCredentials knownBaseRegistryCredentials =
         mavenSettingsServerCredentials.retrieve(baseImage.getRegistry());
     RegistryCredentials knownTargetRegistryCredentials =
@@ -106,8 +109,7 @@ public class BuildImageMojo extends JibPluginConfiguration {
             .setEnvironment(getEnvironment())
             .setExposedPorts(ExposedPortsParser.parse(getExposedPorts()))
             .setTargetFormat(ImageFormat.valueOf(getFormat()).getManifestTemplateClass())
-            .setAllowHttp(getAllowInsecureRegistries())
-            .setProxySettings(null);
+            .setAllowHttp(getAllowInsecureRegistries());
     CacheConfiguration applicationLayersCacheConfiguration =
         CacheConfiguration.forPath(mavenProjectProperties.getCacheDirectory());
     buildConfigurationBuilder.setApplicationLayersCacheConfiguration(
@@ -115,6 +117,11 @@ public class BuildImageMojo extends JibPluginConfiguration {
     if (getUseOnlyProjectCache()) {
       buildConfigurationBuilder.setBaseImageLayersCacheConfiguration(
           applicationLayersCacheConfiguration);
+    }
+    Proxy proxy = session.getSettings().getActiveProxy();
+    if (proxy != null) {
+      buildConfigurationBuilder.setProxySettings(
+          new ProxySettings(proxy.getHost(), proxy.getPort()));
     }
     BuildConfiguration buildConfiguration = buildConfigurationBuilder.build();
 
