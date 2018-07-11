@@ -136,7 +136,9 @@ class PullBaseImageStep
           LayerCountMismatchException {
     RegistryClient.Factory registryClientFactory =
         RegistryClient.factory(
-            buildConfiguration.getBaseImageRegistry(), buildConfiguration.getBaseImageRepository());
+            buildConfiguration.getBaseImageRegistry(),
+            buildConfiguration.getBaseImageRepository(),
+            buildConfiguration.getProxySettings());
     RegistryClient registryClient =
         buildConfiguration.getAllowHttp()
             ? registryClientFactory.newAllowHttp()

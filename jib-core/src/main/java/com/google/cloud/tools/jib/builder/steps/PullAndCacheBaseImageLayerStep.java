@@ -72,7 +72,8 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CachedLayer>, Callable
       RegistryClient.Factory registryClientFactory =
           RegistryClient.factory(
               buildConfiguration.getBaseImageRegistry(),
-              buildConfiguration.getBaseImageRepository());
+              buildConfiguration.getBaseImageRepository(),
+              buildConfiguration.getProxySettings());
       RegistryClient registryClient =
           buildConfiguration.getAllowHttp()
               ? registryClientFactory.newAllowHttp()

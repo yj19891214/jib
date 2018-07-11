@@ -21,6 +21,7 @@ import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.http.Authorizations;
 import com.google.cloud.tools.jib.http.Connection;
+import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.http.Request;
 import com.google.cloud.tools.jib.http.Response;
 import com.google.cloud.tools.jib.json.JsonTemplate;
@@ -54,7 +55,7 @@ public class RegistryAuthenticator {
    */
   @Nullable
   static RegistryAuthenticator fromAuthenticationMethod(
-      String authenticationMethod, String repository) throws RegistryAuthenticationFailedException {
+      String authenticationMethod, String repository, ProxySettings proxySettings) throws RegistryAuthenticationFailedException {
     // If the authentication method starts with 'Basic ', no registry authentication is needed.
     if (authenticationMethod.matches("^Basic .*")) {
       return null;
@@ -79,7 +80,7 @@ public class RegistryAuthenticator {
     }
     String service = serviceMatcher.group(1);
 
-    return new RegistryAuthenticator(realm, service, repository);
+    return new RegistryAuthenticator(realm, service, repository, proxySettings);
   }
 
   private static RegistryAuthenticationFailedException newRegistryAuthenticationFailedException(
@@ -117,9 +118,11 @@ public class RegistryAuthenticator {
 
   private final String authenticationUrlBase;
   @Nullable private Authorization authorization;
+  private final ProxySettings proxySettings;
 
-  RegistryAuthenticator(String realm, String service, String repository) {
+  RegistryAuthenticator(String realm, String service, String repository, ProxySettings proxySettings) {
     authenticationUrlBase = realm + "?service=" + service + "&scope=repository:" + repository + ":";
+    this.proxySettings = proxySettings;
   }
 
   /**
@@ -171,7 +174,7 @@ public class RegistryAuthenticator {
     try {
       URL authenticationUrl = getAuthenticationUrl(scope);
 
-      try (Connection connection = new Connection(authenticationUrl)) {
+      try (Connection connection = new Connection(authenticationUrl, proxySettings)) {
         Request.Builder requestBuilder = Request.builder();
         if (authorization != null) {
           requestBuilder.setAuthorization(authorization);

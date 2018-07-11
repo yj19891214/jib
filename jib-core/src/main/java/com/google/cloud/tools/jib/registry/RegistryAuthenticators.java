@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.jib.registry;
 
+import com.google.cloud.tools.jib.http.ProxySettings;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import javax.annotation.Nullable;
@@ -23,9 +24,9 @@ import javax.annotation.Nullable;
 /** Static initializers for {@link RegistryAuthenticator}. */
 public abstract class RegistryAuthenticators {
 
-  public static RegistryAuthenticator forDockerHub(String repository) {
+  public static RegistryAuthenticator forDockerHub(String repository, ProxySettings proxySettings) {
     return new RegistryAuthenticator(
-        "https://auth.docker.io/token", "registry.docker.io", repository);
+        "https://auth.docker.io/token", "registry.docker.io", repository, proxySettings);
   }
 
   /**
@@ -40,10 +41,10 @@ public abstract class RegistryAuthenticators {
    * @throws RegistryException if communicating with the endpoint fails
    */
   @Nullable
-  public static RegistryAuthenticator forOther(String serverUrl, String repository)
+  public static RegistryAuthenticator forOther(String serverUrl, String repository, ProxySettings proxySettings)
       throws RegistryAuthenticationFailedException, IOException, RegistryException {
     try {
-      return RegistryClient.factory(serverUrl, repository)
+      return RegistryClient.factory(serverUrl, repository, proxySettings)
           .newWithAuthorization(null)
           .getRegistryAuthenticator();
 

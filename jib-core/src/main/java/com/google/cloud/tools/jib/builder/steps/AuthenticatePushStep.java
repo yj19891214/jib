@@ -81,7 +81,8 @@ class AuthenticatePushStep implements AsyncStep<Authorization>, Callable<Authori
       RegistryAuthenticator registryAuthenticator =
           RegistryAuthenticators.forOther(
               buildConfiguration.getTargetImageRegistry(),
-              buildConfiguration.getTargetImageRepository());
+              buildConfiguration.getTargetImageRepository(),
+              buildConfiguration.getProxySettings());
       if (registryAuthenticator == null) {
         return registryCredentials;
       }

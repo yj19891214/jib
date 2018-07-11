@@ -17,6 +17,7 @@
 package com.google.cloud.tools.jib.builder;
 
 import com.google.cloud.tools.jib.configuration.CacheConfiguration;
+import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
@@ -52,6 +53,7 @@ public class BuildConfiguration {
     @Nullable private CacheConfiguration applicationLayersCacheConfiguration;
     @Nullable private CacheConfiguration baseImageLayersCacheConfiguration;
     private boolean allowHttp = false;
+    @Nullable private ProxySettings proxySettings;
 
     private BuildLogger buildLogger;
 
@@ -169,6 +171,11 @@ public class BuildConfiguration {
       return this;
     }
 
+    public Builder setProxySettings(@Nullable ProxySettings proxySettings) {
+      this.proxySettings = proxySettings;
+      return this;
+    }
+
     /** @return the corresponding build configuration */
     public BuildConfiguration build() {
       // Validates the parameters.
@@ -210,7 +217,8 @@ public class BuildConfiguration {
               targetFormat,
               applicationLayersCacheConfiguration,
               baseImageLayersCacheConfiguration,
-              allowHttp);
+              allowHttp,
+              proxySettings);
 
         case 1:
           throw new IllegalStateException(errorMessages.get(0));
@@ -269,6 +277,7 @@ public class BuildConfiguration {
   @Nullable private final CacheConfiguration applicationLayersCacheConfiguration;
   @Nullable private final CacheConfiguration baseImageLayersCacheConfiguration;
   private final boolean allowHttp;
+  private final ProxySettings proxySettings;
 
   /** Instantiate with {@link Builder#build}. */
   private BuildConfiguration(
@@ -287,7 +296,8 @@ public class BuildConfiguration {
       Class<? extends BuildableManifestTemplate> targetFormat,
       @Nullable CacheConfiguration applicationLayersCacheConfiguration,
       @Nullable CacheConfiguration baseImageLayersCacheConfiguration,
-      boolean allowHttp) {
+      boolean allowHttp,
+      ProxySettings proxySettings) {
     this.buildLogger = buildLogger;
     this.baseImageReference = baseImageReference;
     this.baseImageCredentialHelperName = baseImageCredentialHelperName;
@@ -304,6 +314,7 @@ public class BuildConfiguration {
     this.applicationLayersCacheConfiguration = applicationLayersCacheConfiguration;
     this.baseImageLayersCacheConfiguration = baseImageLayersCacheConfiguration;
     this.allowHttp = allowHttp;
+    this.proxySettings = proxySettings;
   }
 
   public BuildLogger getBuildLogger() {
@@ -413,5 +424,9 @@ public class BuildConfiguration {
    */
   public boolean getAllowHttp() {
     return allowHttp;
+  }
+
+  public ProxySettings getProxySettings() {
+    return proxySettings;
   }
 }

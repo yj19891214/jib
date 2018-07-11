@@ -21,6 +21,7 @@ import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.builder.BuildLogger;
 import com.google.cloud.tools.jib.http.Authorization;
+import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.ManifestTemplate;
@@ -67,9 +68,11 @@ public class RegistryClient {
   public static class Factory {
 
     private final RegistryEndpointRequestProperties registryEndpointRequestProperties;
+    private final ProxySettings proxySettings;
 
-    private Factory(RegistryEndpointRequestProperties registryEndpointRequestProperties) {
+    private Factory(RegistryEndpointRequestProperties registryEndpointRequestProperties, ProxySettings proxySettings) {
       this.registryEndpointRequestProperties = registryEndpointRequestProperties;
+      this.proxySettings = proxySettings;
     }
 
     /**
@@ -80,7 +83,7 @@ public class RegistryClient {
      */
     public RegistryClient newWithAuthorization(@Nullable Authorization authorization) {
       return new RegistryClient(
-          authorization, registryEndpointRequestProperties, false, makeUserAgent());
+          authorization, registryEndpointRequestProperties, false, makeUserAgent(), proxySettings);
     }
 
     /**
@@ -89,7 +92,7 @@ public class RegistryClient {
      * @return the new {@link RegistryClient}
      */
     public RegistryClient newAllowHttp() {
-      return new RegistryClient(null, registryEndpointRequestProperties, true, makeUserAgent());
+      return new RegistryClient(null, registryEndpointRequestProperties, true, makeUserAgent(), proxySettings);
     }
   }
 
@@ -100,8 +103,8 @@ public class RegistryClient {
    * @param imageName the image/repository name (also known as, namespace)
    * @return the new {@link Factory}
    */
-  public static Factory factory(String serverUrl, String imageName) {
-    return new Factory(new RegistryEndpointRequestProperties(serverUrl, imageName));
+  public static Factory factory(String serverUrl, String imageName, @Nullable ProxySettings proxySettings) {
+    return new Factory(new RegistryEndpointRequestProperties(serverUrl, imageName), proxySettings);
   }
 
   // TODO: Inject via a RegistryClient.Factory.
@@ -144,6 +147,7 @@ public class RegistryClient {
   private final RegistryEndpointRequestProperties registryEndpointRequestProperties;
   private final boolean allowHttp;
   private final String userAgent;
+  private final ProxySettings proxySettings;
 
   /**
    * Instantiate with {@link #factory}.
@@ -157,11 +161,13 @@ public class RegistryClient {
       @Nullable Authorization authorization,
       RegistryEndpointRequestProperties registryEndpointRequestProperties,
       boolean allowHttp,
-      String userAgent) {
+      String userAgent,
+      ProxySettings proxySettings) {
     this.authorization = authorization;
     this.registryEndpointRequestProperties = registryEndpointRequestProperties;
     this.allowHttp = allowHttp;
     this.userAgent = userAgent;
+    this.proxySettings = proxySettings;
   }
 
   /**
@@ -175,7 +181,7 @@ public class RegistryClient {
     // Gets the WWW-Authenticate header (eg. 'WWW-Authenticate: Bearer
     // realm="https://gcr.io/v2/token",service="gcr.io"')
     return callRegistryEndpoint(
-        new AuthenticationMethodRetriever(registryEndpointRequestProperties));
+        new AuthenticationMethodRetriever(registryEndpointRequestProperties, proxySettings));
   }
 
   /**
@@ -317,7 +323,8 @@ public class RegistryClient {
             registryEndpointProvider,
             authorization,
             registryEndpointRequestProperties,
-            allowHttp)
+            allowHttp,
+            proxySettings)
         .call();
   }
 }

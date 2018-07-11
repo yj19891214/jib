@@ -20,6 +20,7 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpMethods;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.apache.ApacheHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import java.io.Closeable;
@@ -50,7 +51,7 @@ public class Connection implements Closeable {
    * @see <a
    *     href="https://github.com/google/google-http-java-client/issues/39">https://github.com/google/google-http-java-client/issues/39</a>
    */
-  private HttpRequestFactory requestFactory = new ApacheHttpTransport().createRequestFactory();
+  private final HttpRequestFactory requestFactory;
 
   @Nullable private HttpResponse httpResponse;
 
@@ -63,7 +64,19 @@ public class Connection implements Closeable {
    * @param url the url to send the request to
    */
   public Connection(URL url) {
+    this(url, null);
+  }
+
+  public Connection(URL url, ProxySettings proxySettings) {
     this.url = new GenericUrl(url);
+
+    HttpTransport transport;
+    if (proxySettings != null) {
+      transport = new ApacheHttpTransport.Builder().setProxy(proxySettings.apply(url)).build();
+    } else {
+      transport = new ApacheHttpTransport();
+    }
+    requestFactory = transport.createRequestFactory();
   }
 
   @Override
