@@ -24,6 +24,7 @@ import com.google.cloud.tools.jib.frontend.BuildStepsExecutionException;
 import com.google.cloud.tools.jib.frontend.BuildStepsRunner;
 import com.google.cloud.tools.jib.frontend.ExposedPortsParser;
 import com.google.cloud.tools.jib.frontend.HelpfulSuggestions;
+import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.credentials.RegistryCredentials;
@@ -33,6 +34,8 @@ import com.google.common.base.Strings;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.settings.Proxy;
+import org.eclipse.aether.util.repository.AuthenticationBuilder;
 
 /** Builds a container image and exports to the default Docker daemon. */
 @Mojo(
@@ -71,6 +74,11 @@ public class BuildDockerMojo extends JibPluginConfiguration {
         MavenProjectProperties.getForProject(getProject(), mavenBuildLogger);
     String mainClass = mavenProjectProperties.getMainClass(this);
 
+    Proxy proxy = session.getSettings().getActiveProxy();
+    AuthenticationBuilder proxyAuthBuilder = new AuthenticationBuilder();
+    proxyAuthBuilder.addUsername(proxy.getUsername());
+    proxyAuthBuilder.addPassword(proxy.getPassword());
+
     // Builds the BuildConfiguration.
     // TODO: Consolidate with BuildImageMojo.
     BuildConfiguration.Builder buildConfigurationBuilder =
@@ -84,7 +92,8 @@ public class BuildDockerMojo extends JibPluginConfiguration {
             .setJvmFlags(getJvmFlags())
             .setEnvironment(getEnvironment())
             .setExposedPorts(ExposedPortsParser.parse(getExposedPorts(), mavenBuildLogger))
-            .setAllowHttp(getAllowInsecureRegistries());
+            .setAllowHttp(getAllowInsecureRegistries())
+            .setProxySettings(new ProxySettings(proxy.getHost(), proxy.getPort()));
     CacheConfiguration applicationLayersCacheConfiguration =
         CacheConfiguration.forPath(mavenProjectProperties.getCacheDirectory());
     buildConfigurationBuilder.setApplicationLayersCacheConfiguration(
