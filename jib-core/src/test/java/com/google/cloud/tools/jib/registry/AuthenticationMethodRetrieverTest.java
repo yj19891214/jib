@@ -20,6 +20,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpMethods;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpStatusCodes;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.http.Response;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -41,7 +42,7 @@ public class AuthenticationMethodRetrieverTest {
   private final RegistryEndpointRequestProperties fakeRegistryEndpointRequestProperties =
       new RegistryEndpointRequestProperties("someServerUrl", "someImageName");
   private final AuthenticationMethodRetriever testAuthenticationMethodRetriever =
-      new AuthenticationMethodRetriever(fakeRegistryEndpointRequestProperties, null);
+      new AuthenticationMethodRetriever(Connection::new, fakeRegistryEndpointRequestProperties);
 
   @Test
   public void testGetContent() {

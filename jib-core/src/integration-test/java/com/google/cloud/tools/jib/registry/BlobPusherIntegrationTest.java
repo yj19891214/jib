@@ -18,6 +18,7 @@ package com.google.cloud.tools.jib.registry;
 
 import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.Blobs;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import java.io.IOException;
 import java.security.DigestException;
@@ -39,7 +40,9 @@ public class BlobPusherIntegrationTest {
             "52a9e4d4ba4333ce593707f98564fee1e6d898db0d3602408c0b2a6a424d357c");
 
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "testimage", null).newAllowHttp();
+        RegistryClient.factory(url -> new Connection(url), "localhost:5000", "testimage")
+            .setAllowHttp(true)
+            .newRegistryClient();
     Assert.assertFalse(registryClient.pushBlob(testBlobDigest, testBlob));
   }
 }

@@ -20,6 +20,7 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.Blobs;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.json.ManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
@@ -37,10 +38,11 @@ public class ManifestPusherIntegrationTest {
   @Test
   public void testPush_missingBlobs() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory("gcr.io", "distroless/java", null).newWithAuthorization(null);
+        RegistryClient.factory(Connection::new, "gcr.io", "distroless/java").newRegistryClient();
     ManifestTemplate manifestTemplate = registryClient.pullManifest("latest");
 
-    registryClient = RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+    registryClient =
+        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     try {
       registryClient.pushManifest((V22ManifestTemplate) manifestTemplate, "latest");
       Assert.fail("Pushing manifest without its BLOBs should fail");
@@ -72,7 +74,9 @@ public class ManifestPusherIntegrationTest {
 
     // Pushes the BLOBs.
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "testimage", null).newAllowHttp();
+        RegistryClient.factory(Connection::new, "localhost:5000", "testimage")
+            .setAllowHttp(true)
+            .newRegistryClient();
     Assert.assertFalse(registryClient.pushBlob(testLayerBlobDigest, testLayerBlob));
     Assert.assertFalse(
         registryClient.pushBlob(

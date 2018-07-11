@@ -17,6 +17,8 @@
 package com.google.cloud.tools.jib.builder;
 
 import com.google.cloud.tools.jib.configuration.CacheConfiguration;
+import com.google.cloud.tools.jib.configuration.LayerConfiguration;
+import com.google.cloud.tools.jib.configuration.Port;
 import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
@@ -48,12 +50,13 @@ public class BuildConfiguration {
     private ImmutableList<String> javaArguments = ImmutableList.of();
     private ImmutableList<String> jvmFlags = ImmutableList.of();
     private ImmutableMap<String, String> environmentMap = ImmutableMap.of();
-    private ImmutableList<String> exposedPorts = ImmutableList.of();
+    private ImmutableList<Port> exposedPorts = ImmutableList.of();
     private Class<? extends BuildableManifestTemplate> targetFormat = V22ManifestTemplate.class;
     @Nullable private CacheConfiguration applicationLayersCacheConfiguration;
     @Nullable private CacheConfiguration baseImageLayersCacheConfiguration;
     private boolean allowHttp = false;
     @Nullable private ProxySettings proxySettings;
+    @Nullable private LayerConfiguration extraFilesLayerConfiguration;
 
     private BuildLogger buildLogger;
 
@@ -123,7 +126,7 @@ public class BuildConfiguration {
       return this;
     }
 
-    public Builder setExposedPorts(@Nullable List<String> exposedPorts) {
+    public Builder setExposedPorts(@Nullable List<Port> exposedPorts) {
       if (exposedPorts != null) {
         Preconditions.checkArgument(!exposedPorts.contains(null));
         this.exposedPorts = ImmutableList.copyOf(exposedPorts);
@@ -176,6 +179,18 @@ public class BuildConfiguration {
       return this;
     }
 
+    /**
+     * Sets the {@link LayerConfiguration} for an extra layer.
+     *
+     * @param extraFilesLayerConfiguration the layer configuration for the extra layer
+     * @return this
+     */
+    public Builder setExtraFilesLayerConfiguration(
+        @Nullable LayerConfiguration extraFilesLayerConfiguration) {
+      this.extraFilesLayerConfiguration = extraFilesLayerConfiguration;
+      return this;
+    }
+
     /** @return the corresponding build configuration */
     public BuildConfiguration build() {
       // Validates the parameters.
@@ -218,7 +233,8 @@ public class BuildConfiguration {
               applicationLayersCacheConfiguration,
               baseImageLayersCacheConfiguration,
               allowHttp,
-              proxySettings);
+              proxySettings,
+              extraFilesLayerConfiguration);
 
         case 1:
           throw new IllegalStateException(errorMessages.get(0));
@@ -272,12 +288,13 @@ public class BuildConfiguration {
   private final ImmutableList<String> javaArguments;
   private final ImmutableList<String> jvmFlags;
   private final ImmutableMap<String, String> environmentMap;
-  private final ImmutableList<String> exposedPorts;
+  private final ImmutableList<Port> exposedPorts;
   private final Class<? extends BuildableManifestTemplate> targetFormat;
   @Nullable private final CacheConfiguration applicationLayersCacheConfiguration;
   @Nullable private final CacheConfiguration baseImageLayersCacheConfiguration;
   private final boolean allowHttp;
-  private final ProxySettings proxySettings;
+  @Nullable private final ProxySettings proxySettings;
+  @Nullable private final LayerConfiguration extraFilesLayerConfiguration;
 
   /** Instantiate with {@link Builder#build}. */
   private BuildConfiguration(
@@ -292,12 +309,13 @@ public class BuildConfiguration {
       ImmutableList<String> javaArguments,
       ImmutableList<String> jvmFlags,
       ImmutableMap<String, String> environmentMap,
-      ImmutableList<String> exposedPorts,
+      ImmutableList<Port> exposedPorts,
       Class<? extends BuildableManifestTemplate> targetFormat,
       @Nullable CacheConfiguration applicationLayersCacheConfiguration,
       @Nullable CacheConfiguration baseImageLayersCacheConfiguration,
       boolean allowHttp,
-      ProxySettings proxySettings) {
+      ProxySettings proxySettings,
+      @Nullable LayerConfiguration extraFilesLayerConfiguration) {
     this.buildLogger = buildLogger;
     this.baseImageReference = baseImageReference;
     this.baseImageCredentialHelperName = baseImageCredentialHelperName;
@@ -315,6 +333,7 @@ public class BuildConfiguration {
     this.baseImageLayersCacheConfiguration = baseImageLayersCacheConfiguration;
     this.allowHttp = allowHttp;
     this.proxySettings = proxySettings;
+    this.extraFilesLayerConfiguration = extraFilesLayerConfiguration;
   }
 
   public BuildLogger getBuildLogger() {
@@ -389,7 +408,7 @@ public class BuildConfiguration {
     return environmentMap;
   }
 
-  public ImmutableList<String> getExposedPorts() {
+  public ImmutableList<Port> getExposedPorts() {
     return exposedPorts;
   }
 
@@ -428,5 +447,15 @@ public class BuildConfiguration {
 
   public ProxySettings getProxySettings() {
     return proxySettings;
+  }
+
+  /**
+   * Gets the {@link LayerConfiguration} for an extra layer.
+   *
+   * @return the layer configuration
+   */
+  @Nullable
+  public LayerConfiguration getExtraFilesLayerConfiguration() {
+    return extraFilesLayerConfiguration;
   }
 }

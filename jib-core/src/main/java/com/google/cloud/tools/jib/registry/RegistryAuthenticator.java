@@ -21,7 +21,6 @@ import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.http.Authorizations;
 import com.google.cloud.tools.jib.http.Connection;
-import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.http.Request;
 import com.google.cloud.tools.jib.http.Response;
 import com.google.cloud.tools.jib.json.JsonTemplate;
@@ -30,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -54,10 +54,11 @@ public class RegistryAuthenticator {
    *     href="https://docs.docker.com/registry/spec/auth/token/#how-to-authenticate">https://docs.docker.com/registry/spec/auth/token/#how-to-authenticate</a>
    */
   @Nullable
-  static RegistryAuthenticator fromAuthenticationMethod(
-      String authenticationMethod, String repository, ProxySettings proxySettings) throws RegistryAuthenticationFailedException {
-    // If the authentication method starts with 'Basic ', no registry authentication is needed.
-    if (authenticationMethod.matches("^Basic .*")) {
+  static RegistryAuthenticator fromAuthenticationMethod(Function<URL, Connection> connectionFactory,
+      String authenticationMethod, String repository) throws RegistryAuthenticationFailedException {
+    // If the authentication method starts with 'basic ' (case insensitive), no registry
+    // authentication is needed.
+    if (authenticationMethod.matches("^(?i)(basic) .*")) {
       return null;
     }
 
@@ -80,7 +81,7 @@ public class RegistryAuthenticator {
     }
     String service = serviceMatcher.group(1);
 
-    return new RegistryAuthenticator(realm, service, repository, proxySettings);
+    return new RegistryAuthenticator(connectionFactory, realm, service, repository);
   }
 
   private static RegistryAuthenticationFailedException newRegistryAuthenticationFailedException(
@@ -118,11 +119,12 @@ public class RegistryAuthenticator {
 
   private final String authenticationUrlBase;
   @Nullable private Authorization authorization;
-  private final ProxySettings proxySettings;
+  private Function<URL, Connection> connectionFactory;
 
-  RegistryAuthenticator(String realm, String service, String repository, ProxySettings proxySettings) {
+  RegistryAuthenticator(Function<URL, Connection> connectionFactory,
+      String realm, String service, String repository) {
     authenticationUrlBase = realm + "?service=" + service + "&scope=repository:" + repository + ":";
-    this.proxySettings = proxySettings;
+    this.connectionFactory = connectionFactory;
   }
 
   /**
@@ -174,7 +176,7 @@ public class RegistryAuthenticator {
     try {
       URL authenticationUrl = getAuthenticationUrl(scope);
 
-      try (Connection connection = new Connection(authenticationUrl, proxySettings)) {
+      try (Connection connection = connectionFactory.apply(authenticationUrl)) {
         Request.Builder requestBuilder = Request.builder();
         if (authorization != null) {
           requestBuilder.setAuthorization(authorization);

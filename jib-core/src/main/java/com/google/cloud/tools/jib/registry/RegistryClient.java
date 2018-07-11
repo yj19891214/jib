@@ -21,7 +21,7 @@ import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.builder.BuildLogger;
 import com.google.cloud.tools.jib.http.Authorization;
-import com.google.cloud.tools.jib.http.ProxySettings;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.ManifestTemplate;
@@ -33,6 +33,7 @@ import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 
 /** Interfaces with a registry. */
@@ -64,35 +65,57 @@ public class RegistryClient {
     return this;
   }
 
-  /** Immutable factory for creating {@link RegistryClient}s. */
+  /** Factory for creating {@link RegistryClient}s. */
   public static class Factory {
 
     private final RegistryEndpointRequestProperties registryEndpointRequestProperties;
-    private final ProxySettings proxySettings;
+    private final Function<URL, Connection> connectionFactory;
 
-    private Factory(RegistryEndpointRequestProperties registryEndpointRequestProperties, ProxySettings proxySettings) {
+    private boolean allowHttp = false;
+    @Nullable private Authorization authorization;
+
+    private Factory(Function<URL, Connection> connectionFactory,
+        RegistryEndpointRequestProperties registryEndpointRequestProperties) {
+      this.connectionFactory = connectionFactory;
       this.registryEndpointRequestProperties = registryEndpointRequestProperties;
-      this.proxySettings = proxySettings;
     }
 
     /**
-     * Creates a new {@link RegistryClient} with authentication credentials to use in requests.
+     * Sets whether or not {@code HTTP} should be allowed (credentials should not be sent when set
+     * to {@code true}). Defaults to {@code false}.
+     *
+     * @param allowHttp if {@code true}, allows {@code HTTP} connections; otherwise, only {@code
+     *     HTTPS} connections are allowed
+     * @return this
+     */
+    public Factory setAllowHttp(boolean allowHttp) {
+      this.allowHttp = allowHttp;
+      return this;
+    }
+
+    /**
+     * Sets the authentication credentials to use to authenticate with the registry.
      *
      * @param authorization the {@link Authorization} to access the registry/repository
-     * @return the new {@link RegistryClient}
+     * @return this
      */
-    public RegistryClient newWithAuthorization(@Nullable Authorization authorization) {
-      return new RegistryClient(
-          authorization, registryEndpointRequestProperties, false, makeUserAgent(), proxySettings);
+    public Factory setAuthorization(@Nullable Authorization authorization) {
+      this.authorization = authorization;
+      return this;
     }
 
     /**
-     * Creates a new {@link RegistryClient} that allows communication via HTTP.
+     * Creates a new {@link RegistryClient}.
      *
      * @return the new {@link RegistryClient}
      */
-    public RegistryClient newAllowHttp() {
-      return new RegistryClient(null, registryEndpointRequestProperties, true, makeUserAgent(), proxySettings);
+    public RegistryClient newRegistryClient() {
+      return new RegistryClient(
+          connectionFactory,
+          authorization,
+          registryEndpointRequestProperties,
+          allowHttp,
+          makeUserAgent());
     }
   }
 
@@ -103,8 +126,10 @@ public class RegistryClient {
    * @param imageName the image/repository name (also known as, namespace)
    * @return the new {@link Factory}
    */
-  public static Factory factory(String serverUrl, String imageName, @Nullable ProxySettings proxySettings) {
-    return new Factory(new RegistryEndpointRequestProperties(serverUrl, imageName), proxySettings);
+  public static Factory factory(
+      Function<URL, Connection> connectionFactory, String serverUrl, String imageName) {
+    return new Factory(
+        connectionFactory, new RegistryEndpointRequestProperties(serverUrl, imageName));
   }
 
   // TODO: Inject via a RegistryClient.Factory.
@@ -143,11 +168,11 @@ public class RegistryClient {
     return userAgentBuilder.toString();
   }
 
+  private Function<URL, Connection> connectionFactory;
   @Nullable private final Authorization authorization;
   private final RegistryEndpointRequestProperties registryEndpointRequestProperties;
   private final boolean allowHttp;
   private final String userAgent;
-  private final ProxySettings proxySettings;
 
   /**
    * Instantiate with {@link #factory}.
@@ -158,16 +183,16 @@ public class RegistryClient {
    *     allows HTTPS
    */
   private RegistryClient(
+      Function<URL, Connection> connectionFactory,
       @Nullable Authorization authorization,
       RegistryEndpointRequestProperties registryEndpointRequestProperties,
       boolean allowHttp,
-      String userAgent,
-      ProxySettings proxySettings) {
+      String userAgent) {
+    this.connectionFactory = connectionFactory;
     this.authorization = authorization;
     this.registryEndpointRequestProperties = registryEndpointRequestProperties;
     this.allowHttp = allowHttp;
     this.userAgent = userAgent;
-    this.proxySettings = proxySettings;
   }
 
   /**
@@ -180,8 +205,9 @@ public class RegistryClient {
   public RegistryAuthenticator getRegistryAuthenticator() throws IOException, RegistryException {
     // Gets the WWW-Authenticate header (eg. 'WWW-Authenticate: Bearer
     // realm="https://gcr.io/v2/token",service="gcr.io"')
-    return callRegistryEndpoint(
-        new AuthenticationMethodRetriever(registryEndpointRequestProperties, proxySettings));
+    RegistryAuthenticator authenticator = callRegistryEndpoint(
+        new AuthenticationMethodRetriever(connectionFactory, registryEndpointRequestProperties));
+    return authenticator;
   }
 
   /**
@@ -324,7 +350,7 @@ public class RegistryClient {
             authorization,
             registryEndpointRequestProperties,
             allowHttp,
-            proxySettings)
+            connectionFactory)
         .call();
   }
 }

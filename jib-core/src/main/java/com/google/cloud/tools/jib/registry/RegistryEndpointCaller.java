@@ -21,7 +21,6 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.http.Connection;
-import com.google.cloud.tools.jib.http.ProxySettings;
 import com.google.cloud.tools.jib.http.Request;
 import com.google.cloud.tools.jib.http.Response;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
@@ -31,7 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import org.apache.http.NoHttpResponseException;
@@ -69,14 +68,13 @@ class RegistryEndpointCaller<T> {
   }
 
   /** Makes a {@link Connection} to the specified {@link URL}. */
-  private final BiFunction<URL, ProxySettings, Connection> connectionFactory;
+  private final Function<URL, Connection> connectionFactory;
 
   private final RequestState initialRequestState;
   private final String userAgent;
   private final RegistryEndpointProvider<T> registryEndpointProvider;
   private final RegistryEndpointRequestProperties registryEndpointRequestProperties;
   private final boolean allowHttp;
-  private final ProxySettings proxySettings;
 
   /**
    * Constructs with parameters for making the request.
@@ -97,29 +95,7 @@ class RegistryEndpointCaller<T> {
       @Nullable Authorization authorization,
       RegistryEndpointRequestProperties registryEndpointRequestProperties,
       boolean allowHttp,
-      ProxySettings proxySettings)
-      throws MalformedURLException {
-    this(
-        userAgent,
-        apiRouteBase,
-        registryEndpointProvider,
-        authorization,
-        registryEndpointRequestProperties,
-        allowHttp,
-        proxySettings,
-        Connection::new);
-  }
-
-  @VisibleForTesting
-  RegistryEndpointCaller(
-      String userAgent,
-      String apiRouteBase,
-      RegistryEndpointProvider<T> registryEndpointProvider,
-      @Nullable Authorization authorization,
-      RegistryEndpointRequestProperties registryEndpointRequestProperties,
-      boolean allowHttp,
-      ProxySettings proxySettings,
-      BiFunction<URL, ProxySettings, Connection> connectionFactory)
+      Function<URL, Connection> connectionFactory)
       throws MalformedURLException {
     this.initialRequestState =
         new RequestState(
@@ -129,7 +105,6 @@ class RegistryEndpointCaller<T> {
     this.registryEndpointProvider = registryEndpointProvider;
     this.registryEndpointRequestProperties = registryEndpointRequestProperties;
     this.allowHttp = allowHttp;
-    this.proxySettings = proxySettings;
     this.connectionFactory = connectionFactory;
   }
 
@@ -161,7 +136,7 @@ class RegistryEndpointCaller<T> {
       throw new InsecureRegistryException(requestState.url);
     }
 
-    try (Connection connection = connectionFactory.apply(requestState.url, proxySettings)) {
+    try (Connection connection = connectionFactory.apply(requestState.url)) {
       Request.Builder requestBuilder =
           Request.builder()
               .setUserAgent(userAgent)

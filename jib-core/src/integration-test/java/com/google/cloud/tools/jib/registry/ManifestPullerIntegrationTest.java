@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.jib.registry;
 
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.json.ManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V21ManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
@@ -33,7 +34,7 @@ public class ManifestPullerIntegrationTest {
   @Test
   public void testPull_v21() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     V21ManifestTemplate manifestTemplate =
         registryClient.pullManifest("latest", V21ManifestTemplate.class);
 
@@ -44,7 +45,7 @@ public class ManifestPullerIntegrationTest {
   @Test
   public void testPull_v22() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory("gcr.io", "distroless/java", null).newWithAuthorization(null);
+        RegistryClient.factory(Connection::new, "gcr.io", "distroless/java").newRegistryClient();
     ManifestTemplate manifestTemplate = registryClient.pullManifest("latest");
 
     Assert.assertEquals(2, manifestTemplate.getSchemaVersion());
@@ -56,7 +57,9 @@ public class ManifestPullerIntegrationTest {
   public void testPull_unknownManifest() throws RegistryException, IOException {
     try {
       RegistryClient registryClient =
-          RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+          RegistryClient.factory(Connection::new, "localhost:5000", "busybox")
+              .setAllowHttp(true)
+              .newRegistryClient();
       registryClient.pullManifest("nonexistent-tag");
       Assert.fail("Trying to pull nonexistent image should have errored");
 

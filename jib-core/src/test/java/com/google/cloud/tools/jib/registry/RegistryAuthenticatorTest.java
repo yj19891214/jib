@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.jib.registry;
 
+import com.google.cloud.tools.jib.http.Connection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import org.junit.Assert;
@@ -29,9 +30,9 @@ public class RegistryAuthenticatorTest {
       throws MalformedURLException, RegistryAuthenticationFailedException {
     RegistryAuthenticator registryAuthenticator =
         RegistryAuthenticator.fromAuthenticationMethod(
+            Connection::new,
             "Bearer realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
-            "someimage",
-            null);
+            "someimage");
     Assert.assertEquals(
         new URL("https://somerealm?service=someservice&scope=repository:someimage:scope"),
         registryAuthenticator.getAuthenticationUrl("scope"));
@@ -41,18 +42,30 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_basic() throws RegistryAuthenticationFailedException {
     Assert.assertNull(
         RegistryAuthenticator.fromAuthenticationMethod(
+            Connection::new,
             "Basic realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
-            "someimage",
-            null));
+            "someimage"));
+
+    Assert.assertNull(
+        RegistryAuthenticator.fromAuthenticationMethod(
+            Connection::new,
+            "BASIC realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
+            "someimage"));
+
+    Assert.assertNull(
+        RegistryAuthenticator.fromAuthenticationMethod(
+            Connection::new,
+            "bASIC realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
+            "someimage"));
   }
 
   @Test
   public void testFromAuthenticationMethod_noBearer() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
+          Connection::new,
           "realm=\"https://somerealm\",service=\"someservice\",scope=\"somescope\"",
-          "someimage",
-          null);
+          "someimage");
       Assert.fail("Authentication method without 'Bearer ' or 'Basic ' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {
@@ -66,7 +79,7 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_noRealm() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          "Bearer scope=\"somescope\"", "someimage", null);
+          Connection::new, "Bearer scope=\"somescope\"", "someimage");
       Assert.fail("Authentication method without 'realm' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {
@@ -80,7 +93,7 @@ public class RegistryAuthenticatorTest {
   public void testFromAuthenticationMethod_noService() {
     try {
       RegistryAuthenticator.fromAuthenticationMethod(
-          "Bearer realm=\"https://somerealm\"", "someimage", null);
+          Connection::new, "Bearer realm=\"https://somerealm\"", "someimage");
       Assert.fail("Authentication method without 'service' should fail");
 
     } catch (RegistryAuthenticationFailedException ex) {

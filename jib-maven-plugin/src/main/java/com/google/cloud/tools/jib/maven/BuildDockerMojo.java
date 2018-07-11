@@ -91,7 +91,7 @@ public class BuildDockerMojo extends JibPluginConfiguration {
             .setJavaArguments(getArgs())
             .setJvmFlags(getJvmFlags())
             .setEnvironment(getEnvironment())
-            .setExposedPorts(ExposedPortsParser.parse(getExposedPorts(), mavenBuildLogger))
+            .setExposedPorts(ExposedPortsParser.parse(getExposedPorts()))
             .setAllowHttp(getAllowInsecureRegistries())
             .setProxySettings(new ProxySettings(proxy.getHost(), proxy.getPort()));
     CacheConfiguration applicationLayersCacheConfiguration =

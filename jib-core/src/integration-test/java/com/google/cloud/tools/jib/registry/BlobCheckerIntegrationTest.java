@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.jib.registry;
 
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
 import java.io.IOException;
@@ -32,7 +33,7 @@ public class BlobCheckerIntegrationTest {
   @Test
   public void testCheck_exists() throws IOException, RegistryException {
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     V22ManifestTemplate manifestTemplate =
         registryClient.pullManifest("latest", V22ManifestTemplate.class);
     DescriptorDigest blobDigest = manifestTemplate.getLayers().get(0).getDigest();
@@ -43,7 +44,7 @@ public class BlobCheckerIntegrationTest {
   @Test
   public void testCheck_doesNotExist() throws IOException, RegistryException, DigestException {
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     DescriptorDigest fakeBlobDigest =
         DescriptorDigest.fromHash(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

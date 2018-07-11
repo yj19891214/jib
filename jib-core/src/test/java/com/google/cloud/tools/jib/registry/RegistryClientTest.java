@@ -17,6 +17,7 @@
 package com.google.cloud.tools.jib.registry;
 
 import com.google.cloud.tools.jib.http.Authorization;
+import com.google.cloud.tools.jib.http.Connection;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,21 +37,24 @@ public class RegistryClientTest {
 
   @Before
   public void setUp() {
-    testRegistryClientFactory = RegistryClient.factory("some.server.url", "some image name", null);
+    testRegistryClientFactory =
+        RegistryClient.factory(Connection::new, "some.server.url", "some image name");
   }
 
   @Test
   public void testGetUserAgent_null() {
     Assert.assertTrue(
         testRegistryClientFactory
-            .newWithAuthorization(mockAuthorization)
+            .setAuthorization(mockAuthorization)
+            .newRegistryClient()
             .getUserAgent()
             .startsWith("jib"));
 
     RegistryClient.setUserAgentSuffix(null);
     Assert.assertTrue(
         testRegistryClientFactory
-            .newWithAuthorization(mockAuthorization)
+            .setAuthorization(mockAuthorization)
+            .newRegistryClient()
             .getUserAgent()
             .startsWith("jib"));
   }
@@ -59,10 +63,16 @@ public class RegistryClientTest {
   public void testGetUserAgent() {
     RegistryClient.setUserAgentSuffix("some user agent suffix");
 
-    Assert.assertTrue(testRegistryClientFactory.newAllowHttp().getUserAgent().startsWith("jib "));
     Assert.assertTrue(
         testRegistryClientFactory
-            .newAllowHttp()
+            .setAllowHttp(true)
+            .newRegistryClient()
+            .getUserAgent()
+            .startsWith("jib "));
+    Assert.assertTrue(
+        testRegistryClientFactory
+            .setAllowHttp(true)
+            .newRegistryClient()
             .getUserAgent()
             .endsWith(" some user agent suffix"));
   }
@@ -70,6 +80,7 @@ public class RegistryClientTest {
   @Test
   public void testGetApiRouteBase() {
     Assert.assertEquals(
-        "some.server.url/v2/", testRegistryClientFactory.newAllowHttp().getApiRouteBase());
+        "some.server.url/v2/",
+        testRegistryClientFactory.setAllowHttp(true).newRegistryClient().getApiRouteBase());
   }
 }

@@ -20,6 +20,7 @@ import com.google.cloud.tools.jib.Timer;
 import com.google.cloud.tools.jib.async.AsyncStep;
 import com.google.cloud.tools.jib.async.NonBlockingSteps;
 import com.google.cloud.tools.jib.builder.BuildConfiguration;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.ImageToJsonTranslator;
 import com.google.cloud.tools.jib.registry.RegistryClient;
@@ -116,16 +117,14 @@ class PushImageStep implements AsyncStep<Void>, Callable<Void> {
 
   private Void afterAllPushed() throws IOException, RegistryException, ExecutionException {
     try (Timer ignored = new Timer(buildConfiguration.getBuildLogger(), DESCRIPTION)) {
-      RegistryClient.Factory registryClientFactory =
-          RegistryClient.factory(
-              buildConfiguration.getTargetImageRegistry(),
-              buildConfiguration.getTargetImageRepository(),
-              buildConfiguration.getProxySettings());
       RegistryClient registryClient =
-          buildConfiguration.getAllowHttp()
-              ? registryClientFactory.newAllowHttp()
-              : registryClientFactory.newWithAuthorization(
-                  NonBlockingSteps.get(authenticatePushStep));
+          RegistryClient.factory(
+                  url -> new Connection(url, buildConfiguration.getProxySettings()),
+                  buildConfiguration.getTargetImageRegistry(),
+                  buildConfiguration.getTargetImageRepository())
+              .setAllowHttp(buildConfiguration.getAllowHttp())
+              .setAuthorization(NonBlockingSteps.get(authenticatePushStep))
+              .newRegistryClient();
 
       // Constructs the image.
       ImageToJsonTranslator imageToJsonTranslator =

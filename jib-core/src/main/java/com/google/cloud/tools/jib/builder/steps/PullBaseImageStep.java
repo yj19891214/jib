@@ -23,6 +23,7 @@ import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.builder.BuildConfiguration;
 import com.google.cloud.tools.jib.builder.steps.PullBaseImageStep.BaseImageWithAuthorization;
 import com.google.cloud.tools.jib.http.Authorization;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.Layer;
 import com.google.cloud.tools.jib.image.LayerCountMismatchException;
@@ -34,6 +35,9 @@ import com.google.cloud.tools.jib.image.json.UnknownManifestFormatException;
 import com.google.cloud.tools.jib.image.json.V21ManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
+import com.google.cloud.tools.jib.registry.RegistryAuthenticationFailedException;
+import com.google.cloud.tools.jib.registry.RegistryAuthenticator;
+import com.google.cloud.tools.jib.registry.RegistryAuthenticators;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
 import com.google.cloud.tools.jib.registry.RegistryUnauthorizedException;
@@ -94,7 +98,7 @@ class PullBaseImageStep
   @Override
   public BaseImageWithAuthorization call()
       throws IOException, RegistryException, LayerPropertyNotFoundException,
-          LayerCountMismatchException, ExecutionException {
+          LayerCountMismatchException, ExecutionException, RegistryAuthenticationFailedException {
     buildConfiguration
         .getBuildLogger()
         .lifecycle("Getting base image " + buildConfiguration.getBaseImageReference() + "...");
@@ -114,8 +118,34 @@ class PullBaseImageStep
 
         Authorization registryCredentials =
             NonBlockingSteps.get(retrieveBaseRegistryCredentialsStep);
-        return new BaseImageWithAuthorization(
-            pullBaseImage(registryCredentials), registryCredentials);
+
+        try {
+          return new BaseImageWithAuthorization(
+              pullBaseImage(registryCredentials), registryCredentials);
+
+        } catch (RegistryUnauthorizedException registryUnauthorizedException) {
+          // The registry requires us to authenticate using the Docker Token Authentication.
+          // See https://docs.docker.com/registry/spec/auth/token
+          RegistryAuthenticator registryAuthenticator =
+              RegistryAuthenticators.forOther(
+                  url -> new Connection(url, buildConfiguration.getProxySettings()),
+                  buildConfiguration.getBaseImageRegistry(),
+                  buildConfiguration.getBaseImageRepository());
+          if (registryAuthenticator == null) {
+            buildConfiguration
+                .getBuildLogger()
+                .error(
+                    "Failed to retrieve authentication challenge for registry that required token authentication");
+            throw registryUnauthorizedException;
+          }
+          registryCredentials =
+              registryAuthenticator
+              .setAuthorization(registryCredentials)
+              .authenticatePull();
+
+          return new BaseImageWithAuthorization(
+              pullBaseImage(registryCredentials), registryCredentials);
+        }
       }
     }
   }
@@ -134,15 +164,14 @@ class PullBaseImageStep
   private Image<Layer> pullBaseImage(@Nullable Authorization registryCredentials)
       throws IOException, RegistryException, LayerPropertyNotFoundException,
           LayerCountMismatchException {
-    RegistryClient.Factory registryClientFactory =
-        RegistryClient.factory(
-            buildConfiguration.getBaseImageRegistry(),
-            buildConfiguration.getBaseImageRepository(),
-            buildConfiguration.getProxySettings());
     RegistryClient registryClient =
-        buildConfiguration.getAllowHttp()
-            ? registryClientFactory.newAllowHttp()
-            : registryClientFactory.newWithAuthorization(registryCredentials);
+        RegistryClient.factory(
+                url -> new Connection(url, buildConfiguration.getProxySettings()),
+                buildConfiguration.getBaseImageRegistry(),
+                buildConfiguration.getBaseImageRepository())
+            .setAllowHttp(buildConfiguration.getAllowHttp())
+            .setAuthorization(registryCredentials)
+            .newRegistryClient();
 
     ManifestTemplate manifestTemplate =
         registryClient.pullManifest(buildConfiguration.getBaseImageTag());

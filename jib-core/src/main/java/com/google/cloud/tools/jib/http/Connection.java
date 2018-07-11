@@ -67,11 +67,12 @@ public class Connection implements Closeable {
     this(url, null);
   }
 
-  public Connection(URL url, ProxySettings proxySettings) {
+  public Connection(URL url, @Nullable ProxySettings proxySettings) {
     this.url = new GenericUrl(url);
 
     HttpTransport transport;
     if (proxySettings != null) {
+      // TODO(chanseok): check nonProxyHosts to exclude hosts from proxy
       transport = new ApacheHttpTransport.Builder().setProxy(proxySettings.apply(url)).build();
     } else {
       transport = new ApacheHttpTransport();

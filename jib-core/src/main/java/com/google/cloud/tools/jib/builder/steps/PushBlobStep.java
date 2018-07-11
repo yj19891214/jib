@@ -22,6 +22,7 @@ import com.google.cloud.tools.jib.async.NonBlockingSteps;
 import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.builder.BuildConfiguration;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
 import com.google.common.util.concurrent.Futures;
@@ -68,16 +69,14 @@ class PushBlobStep implements AsyncStep<BlobDescriptor>, Callable<BlobDescriptor
   public BlobDescriptor call() throws IOException, RegistryException, ExecutionException {
     try (Timer timer =
         new Timer(buildConfiguration.getBuildLogger(), DESCRIPTION + blobDescriptor)) {
-      RegistryClient.Factory registryClientFactory =
-          RegistryClient.factory(
-              buildConfiguration.getTargetImageRegistry(),
-              buildConfiguration.getTargetImageRepository(),
-              buildConfiguration.getProxySettings());
       RegistryClient registryClient =
-          buildConfiguration.getAllowHttp()
-              ? registryClientFactory.newAllowHttp()
-              : registryClientFactory.newWithAuthorization(
-                  NonBlockingSteps.get(authenticatePushStep));
+          RegistryClient.factory(
+                  url -> new Connection(url, buildConfiguration.getProxySettings()),
+                  buildConfiguration.getTargetImageRegistry(),
+                  buildConfiguration.getTargetImageRepository())
+              .setAllowHttp(buildConfiguration.getAllowHttp())
+              .setAuthorization(NonBlockingSteps.get(authenticatePushStep))
+              .newRegistryClient();
       registryClient.setTimer(timer);
 
       if (registryClient.checkBlob(blobDescriptor.getDigest()) != null) {

@@ -20,24 +20,26 @@ import com.google.api.client.http.HttpMethods;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.tools.jib.http.BlobHttpContent;
-import com.google.cloud.tools.jib.http.ProxySettings;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.http.Response;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 
 /** Retrieves the {@code WWW-Authenticate} header from the registry API. */
 class AuthenticationMethodRetriever implements RegistryEndpointProvider<RegistryAuthenticator> {
 
+  private final Function<URL, Connection> connectionFactory;
   private final RegistryEndpointRequestProperties registryEndpointRequestProperties;
-  private final ProxySettings proxySettings;
 
   AuthenticationMethodRetriever(
-      RegistryEndpointRequestProperties registryEndpointRequestProperties, ProxySettings proxySettings) {
+      Function<URL, Connection> connectionFactory,
+      RegistryEndpointRequestProperties registryEndpointRequestProperties) {
+    this.connectionFactory = connectionFactory;
     this.registryEndpointRequestProperties = registryEndpointRequestProperties;
-    this.proxySettings = proxySettings;
   }
 
   @Nullable
@@ -99,7 +101,7 @@ class AuthenticationMethodRetriever implements RegistryEndpointProvider<Registry
     // Parses the header to retrieve the components.
     try {
       return RegistryAuthenticator.fromAuthenticationMethod(
-          authenticationMethod, registryEndpointRequestProperties.getImageName(), proxySettings);
+          connectionFactory, authenticationMethod, registryEndpointRequestProperties.getImageName());
 
     } catch (RegistryAuthenticationFailedException ex) {
       throw new RegistryErrorExceptionBuilder(getActionDescription(), ex)

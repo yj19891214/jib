@@ -17,6 +17,7 @@
 package com.google.cloud.tools.jib.registry;
 
 import com.google.cloud.tools.jib.hash.CountingDigestOutputStream;
+import com.google.cloud.tools.jib.http.Connection;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.json.V21ManifestTemplate;
 import com.google.common.io.ByteStreams;
@@ -42,7 +43,7 @@ public class BlobPullerIntegrationTest {
   public void testPull() throws IOException, RegistryException {
     // Pulls the busybox image.
     RegistryClient registryClient =
-        RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+        RegistryClient.factory(Connection::new, "localhost:5000", "busybox").setAllowHttp(true).newRegistryClient();
     V21ManifestTemplate manifestTemplate =
         registryClient.pullManifest("latest", V21ManifestTemplate.class);
 
@@ -64,7 +65,9 @@ public class BlobPullerIntegrationTest {
 
     try {
       RegistryClient registryClient =
-          RegistryClient.factory("localhost:5000", "busybox", null).newAllowHttp();
+          RegistryClient.factory(Connection::new, "localhost:5000", "busybox")
+              .setAllowHttp(true)
+              .newRegistryClient();
       registryClient.pullBlob(nonexistentDigest, Mockito.mock(OutputStream.class));
       Assert.fail("Trying to pull nonexistent blob should have errored");
 
