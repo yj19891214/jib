@@ -16,6 +16,8 @@
 
 package com.google.cloud.tools.jib.registry;
 
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.tools.jib.http.BlobHttpContent;
 import com.google.cloud.tools.jib.http.Response;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
@@ -30,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +62,11 @@ public class ManifestPusherTest {
   }
 
   @Test
+  public void testStatusCodeInvalidMediaType() {
+    Assert.assertEquals(415, ManifestPusher.STATUS_CODE_INVALID_MEDIA_TYPE);
+  }
+
+  @Test
   public void testGetContent() throws IOException {
     BlobHttpContent body = testManifestPusher.getContent();
 
@@ -78,6 +86,40 @@ public class ManifestPusherTest {
     Assert.assertNull(testManifestPusher.handleResponse(Mockito.mock(Response.class)));
   }
 
+  @Test
+  public void testHandleHttpResponseException_notHandled()
+      throws HttpResponseException, RegistryErrorException {
+    HttpResponseException httpException = Mockito.mock(HttpResponseException.class);
+    Mockito.when(httpException.getStatusCode()).thenReturn(HttpStatusCodes.STATUS_CODE_CONFLICT);
+    Assert.assertNull(testManifestPusher.handleHttpResponseException(httpException));
+  }
+  
+  @Test
+  public void testHandleHttpResponseException_handled() throws HttpResponseException {
+    verifyHttpResponseExceptionMapping(HttpStatusCodes.STATUS_CODE_BAD_REQUEST);
+    verifyHttpResponseExceptionMapping(HttpStatusCodes.STATUS_CODE_NOT_FOUND);
+    verifyHttpResponseExceptionMapping(HttpStatusCodes.STATUS_CODE_METHOD_NOT_ALLOWED);
+    verifyHttpResponseExceptionMapping(ManifestPusher.STATUS_CODE_INVALID_MEDIA_TYPE);
+  }
+
+  private void verifyHttpResponseExceptionMapping(int statusCode) throws HttpResponseException {
+    HttpResponseException httpException = Mockito.mock(HttpResponseException.class);
+    Mockito.when(httpException.getStatusCode()).thenReturn(statusCode);
+    Mockito.when(httpException.getContent())
+        .thenReturn(
+            "{\"errors\":[{\"code\":\"MANIFEST_INVALID\",\"message\":\"manifest invalid\"}]}");
+    try {
+      testManifestPusher.handleHttpResponseException(httpException);
+      Assert.fail();
+    } catch (RegistryErrorException registryException) {
+      Assert.assertThat(
+          registryException.getMessage(),
+          CoreMatchers.startsWith(
+              "Tried to push image manifest for someServerUrl/someImageName:test-image-tag but failed because: manifest invalid (something went wrong)"));
+      Assert.assertSame(httpException, registryException.getCause());
+    }
+  }
+  
   @Test
   public void testApiRoute() throws MalformedURLException {
     Assert.assertEquals(
