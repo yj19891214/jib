@@ -35,7 +35,15 @@ class RegistryErrorExceptionBuilder {
    * @param message the original received error message, which may or may not be used depending on
    *     the {@code errorCode}
    */
-  private static String getReason(@Nullable String errorCodeString, @Nullable String message) {
+  private static String getReason(ErrorEntryTemplate errorEntry) {
+    String errorCodeString = errorEntry.getCode();
+    String message = errorEntry.getMessage();
+
+    // use the detailed message if provided
+    if (errorEntry.getDetail() != null && errorEntry.getDetail().containsKey("message")) {
+      message = errorEntry.getDetail().get("message");
+    }
+
     if (message == null) {
       message = "no details";
     }
@@ -86,7 +94,7 @@ class RegistryErrorExceptionBuilder {
    * @param errorEntry the {@link ErrorEntryTemplate} to add
    */
   RegistryErrorExceptionBuilder addReason(ErrorEntryTemplate errorEntry) {
-    String reason = getReason(errorEntry.getCode(), errorEntry.getMessage());
+    String reason = getReason(errorEntry);
     addReason(reason);
     return this;
   }
