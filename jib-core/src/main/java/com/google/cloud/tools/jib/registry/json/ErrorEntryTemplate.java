@@ -18,14 +18,14 @@ package com.google.cloud.tools.jib.registry.json;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.cloud.tools.jib.json.JsonTemplate;
+import java.util.Map;
 import javax.annotation.Nullable;
 
-// TODO: Should include detail field as well - need to have custom parser
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ErrorEntryTemplate implements JsonTemplate {
-
   @Nullable private String code;
   @Nullable private String message;
+  @Nullable private Map<String, String> detail;
 
   public ErrorEntryTemplate(String code, String message) {
     this.code = code;
@@ -42,5 +42,15 @@ public class ErrorEntryTemplate implements JsonTemplate {
   @Nullable
   public String getMessage() {
     return message;
+  }
+
+  /**
+   * Some services include additional details, such as {@code message} or {@code description}.
+   *
+   * @return the detail object, or {@code null} if no detail was included
+   */
+  @Nullable
+  public Map<String, String> getDetail() {
+    return detail;
   }
 }
