@@ -211,7 +211,7 @@ Jib currently requires configuring your build tool to use the appropriate [Java 
 There are a few reasons why Jib may be unable to connect to a remote registry, including:
 
    - **Access requires a proxy.** See [_How do I configure a proxy?_](#how-do-i-configure-a-proxy) for details.
-   - **The registry does not support HTTPS or its certificates are not configured properly.**  We have a separate document on [handling registries that use self-signed certificates](self_sign_cert.md).  We support an  `allowInsecureRegistries` flag to ignore SSL certificate validation, though we cannot recommend its use (_Jib 0.9.8_). Finally we do not pass authentication details on non-HTTPS connections, though this can be overridden with the `sendCredentialsOverHttp` system property (_Jib 0.9.8_).
+   - **The registry does not support HTTPS or its certificates are not configured properly.**  We have a separate document on [handling registries that use self-signed certificates](self_sign_cert.md).  We support an  `allowInsecureRegistries` flag to ignore SSL certificate validation, but we do recommend its use (_Jib 0.9.8_). Finally we do not pass authentication details on non-HTTPS connections, but this can be overridden with the `sendCredentialsOverHttp` system property (_Jib 0.9.8_).
    - **The registry does not support the [Docker Registry V2 Schema 2](https://github.com/GoogleContainerTools/jib/issues/601)** (sometimes referred to as _v2-2_).  This problem is usually shown by failures wth `INVALID_MANIFEST` errors. Some registries can be configured to support V2-2 such as [Artifactory](https://www.jfrog.com/confluence/display/RTF/Docker+Registry#DockerRegistry-LocalDockerRepositories). Other registries, such as Quay.io/Quay Enterprise and OpenShift, are in the process of adding support.
 
 ### How can I examine network traffic?
@@ -230,11 +230,11 @@ com.google.api.client.http.level=CONFIG
 
 And then launch your build tool as follows:
 ```sh
-mvn -Djava.util.logging.config.file=log.properties -DjibSerialize=true ...
+mvn -Djava.util.logging.config.file=path/to/log.properties -DjibSerialize=true ...
 ```
 or
 ```sh
-gradle -Djava.util.logging.config.file=log.properties -DjibSerialize=true ...
+gradle -Djava.util.logging.config.file=path/to/log.properties -DjibSerialize=true ...
 ```
 
 ### How do I enable debugging?
